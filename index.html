@@ -6,24 +6,26 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <style>
-        /* DASHBOARD WEB */
         body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #f8fafc; }
-        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; margin-bottom: 1.5rem; }
-        #map { height: 400px; border-radius: 12px; width: 100%; border: 1px solid rgba(56, 189, 248, 0.2); }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; margin-bottom: 1.5rem; }
+        #map { height: 400px; border-radius: 12px; width: 100%; border: 1px solid rgba(56,189,248,0.2); }
         .chart-container { position: relative; height: 400px; }
         .btn-nexus { background: #38bdf8; color: #0f172a; font-weight: 600; border: none; border-radius: 8px; transition: 0.3s; }
         .btn-nexus:hover { background: #0ea5e9; color: white; }
+        .btn-nexus-outline { background: transparent; color: #38bdf8; font-weight: 600; border: 1px solid #38bdf8; border-radius: 8px; transition: 0.3s; }
+        .btn-nexus-outline:hover { background: #38bdf8; color: #0f172a; }
+        .btn-nexus-outline.active { background: #38bdf8; color: #0f172a; }
+        .badge-ballester { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; }
+        .badge-gesell { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; }
 
-        /* REPORTE A4 (OCULTO) */
+        /* REPORTE A4 */
         #reporte-a4-container { position: absolute; left: -9999px; top: 0; }
         #reporte-a4 { width: 210mm; padding: 20mm; background: white; color: #1e293b; }
         .pdf-header { border-bottom: 3px solid #38bdf8; padding-bottom: 10px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
@@ -39,108 +41,252 @@
 <body>
 
 <div class="container py-4">
+
+    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-0"><i class="fa-solid fa-satellite-dish me-3 text-info"></i> Marino RealTime S.A - AHK</h1>
-            <p class="text-muted">Villa Ballester — Villa Gesell</p>
+            <p class="text-muted mb-0">Villa Ballester — Villa Gesell</p>
         </div>
         <button onclick="exportarPDFProfesional()" id="btn-export" class="btn btn-nexus px-4 py-2">
             <i class="fa-solid fa-file-pdf me-2"></i>Exportar Reporte Técnico
         </button>
     </div>
 
+    <!-- Mapa + Gráfico -->
     <div class="row">
-        <div class="col-lg-7"><div class="glass-card p-3"><h5 class="mb-3 text-info">Monitoreo Geográfico</h5><div id="map"></div></div></div>
-        <div class="col-lg-5"><div class="glass-card p-3"><h5 class="mb-3 text-info">Análisis de Telemetría</h5><div class="chart-container"><canvas id="graficoMediciones"></canvas></div></div></div>
+        <div class="col-lg-7">
+            <div class="glass-card p-3">
+                <h5 class="mb-3 text-info">Monitoreo Geográfico</h5>
+                <div id="map"></div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="glass-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 text-info">Análisis de Telemetría</h5>
+                </div>
+                <!-- Filtro por sensor -->
+                <div class="d-flex gap-2 mb-3 flex-wrap" id="filtros-sensor">
+                    <button class="btn btn-sm btn-nexus-outline active" onclick="filtrarGrafico('Todos', this)">Todos</button>
+                    <button class="btn btn-sm btn-nexus-outline" onclick="filtrarGrafico('Tensión', this)">Tensión</button>
+                    <button class="btn btn-sm btn-nexus-outline" onclick="filtrarGrafico('Corriente', this)">Corriente</button>
+                    <button class="btn btn-sm btn-nexus-outline" onclick="filtrarGrafico('Potencia', this)">Potencia</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="graficoMediciones"></canvas>
+                </div>
+                <!-- Leyenda -->
+                <div class="d-flex gap-3 mt-2 justify-content-center">
+                    <span class="badge-ballester"><i class="fa-solid fa-circle me-1" style="font-size:0.6rem"></i>Ballester</span>
+                    <span class="badge-gesell"><i class="fa-solid fa-circle me-1" style="font-size:0.6rem"></i>Gesell</span>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Tabla -->
     <div class="row">
-        <div class="col-12"><div class="glass-card p-4"><table class="table table-hover align-middle"><thead><tr class="text-info"><th>Estación</th><th>Sensor</th><th>Valor</th><th>Fecha</th><th>Hora</th></tr></thead><tbody id="tablaCuerpo"></tbody></table></div></div>
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <h5 class="mb-3 text-info">Histórico de Mediciones</h5>
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr class="text-info">
+                            <th>Estación</th>
+                            <th>Sensor</th>
+                            <th>Valor</th>
+                            <th>Unidad</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaCuerpo"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Reporte A4 oculto -->
 <div id="reporte-a4-container">
     <div id="reporte-a4">
         <div class="pdf-header">
-            <div><h1 style="margin:0; font-size: 28pt; color: #0369a1;"> Marino REAL TIME S.A</h1><p style="margin:0; color: #64748b;">Reporte de Telemetría Industrial</p></div>
-            <div style="text-align: right;"><p style="margin:0; font-weight: bold; color: #334155;">INFORME TÉCNICO</p><p style="margin:0; font-size: 9pt;" id="pdf-fecha"></p></div>
+            <div>
+                <h1 style="margin:0; font-size:28pt; color:#0369a1;">Marino REAL TIME S.A</h1>
+                <p style="margin:0; color:#64748b;">Reporte de Telemetría Industrial</p>
+            </div>
+            <div style="text-align:right;">
+                <p style="margin:0; font-weight:bold; color:#334155;">INFORME TÉCNICO</p>
+                <p style="margin:0; font-size:9pt;" id="pdf-fecha"></p>
+            </div>
         </div>
-
         <div class="pdf-section">
             <h2>1. Análisis Visual de Datos</h2>
             <div id="pdf-grafico-img" class="chart-placeholder"></div>
         </div>
-
         <div class="pdf-section">
             <h2>2. Histórico de Mediciones</h2>
             <table class="pdf-table">
-                <thead><tr><th>Estación</th><th>Sensor</th><th>Valor</th><th>Fecha y Hora</th></tr></thead>
+                <thead><tr><th>Estación</th><th>Sensor</th><th>Valor</th><th>Unidad</th><th>Fecha y Hora</th></tr></thead>
                 <tbody id="pdf-tabla-cuerpo"></tbody>
             </table>
         </div>
-
-        <div style="margin-top: 60px; border-top: 1px solid #e2e8f0; padding-top: 15px; font-size: 8pt; color: #94a3b8; text-align: center;">
+        <div style="margin-top:60px; border-top:1px solid #e2e8f0; padding-top:15px; font-size:8pt; color:#94a3b8; text-align:center;">
             Documento generado por Marino Real Time S.A en Villa Ballester. Confidencialidad Nivel 1.
         </div>
     </div>
 </div>
 
 <script>
-    // MAPA Y DATOS (Igual que antes)
+    // ── MAPA ──────────────────────────────────────────────────────────────
     const ballester = [-34.5495, -58.5550];
-    const gesell = [-37.2640, -56.9730];
+    const gesell    = [-37.2640, -56.9730];
     const map = L.map('map').setView([-35.9000, -57.7000], 7);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    L.marker(ballester).addTo(map).bindPopup("Villa Ballester");
-    L.marker(gesell).addTo(map).bindPopup("Villa Gesell");
-    L.polyline([ballester, [-34.92, -57.95], [-36.31, -57.68], gesell], { color: '#38bdf8', weight: 4, dashArray: '8, 8' }).addTo(map);
+    L.marker(ballester).addTo(map).bindPopup("<b>Estación Ballester</b><br>Villa Ballester");
+    L.marker(gesell).addTo(map).bindPopup("<b>Estación Gesell</b><br>Villa Gesell");
+    L.polyline([ballester, [-34.92, -57.95], [-36.31, -57.68], gesell], {
+        color: '#38bdf8', weight: 4, dashArray: '8, 8'
+    }).addTo(map);
 
-    fetch('api.php').then(res => res.json()).then(data => {
+    // ── DATOS GLOBALES ────────────────────────────────────────────────────
+    let todosLosDatos = [];
+    let chartInstance = null;
+
+    // ── FETCH ─────────────────────────────────────────────────────────────
+    fetch('api.php')
+        .then(res => res.json())
+        .then(data => {
+            todosLosDatos = data;
+            renderizarTabla(data);
+            renderizarGrafico(data, 'Todos');
+        })
+        .catch(err => console.error('Error al cargar datos:', err));
+
+    // ── TABLA ─────────────────────────────────────────────────────────────
+    function renderizarTabla(data) {
         const cuerpo = document.getElementById('tablaCuerpo');
+        cuerpo.innerHTML = '';
         data.forEach(m => {
-            cuerpo.innerHTML += `<tr><td>${m.Estacion}</td><td>${m.Sensor}</td><td class="text-info fw-bold">${m.Valor}</td><td>${m.Fecha}</td><td>${m.Hora}</td></tr>`;
+            const badgeClass = m.Estacion.includes('Ballester') ? 'badge-ballester' : 'badge-gesell';
+            cuerpo.innerHTML += `
+                <tr>
+                    <td><span class="${badgeClass}">${m.Estacion}</span></td>
+                    <td>${m.Sensor}</td>
+                    <td class="text-info fw-bold">${parseFloat(m.Valor).toLocaleString('es-AR')}</td>
+                    <td><small class="text-muted">${m.Unidad || '—'}</small></td>
+                    <td>${m.Fecha}</td>
+                    <td>${m.Hora}</td>
+                </tr>`;
+        });
+    }
+
+    // ── GRÁFICO ───────────────────────────────────────────────────────────
+    function renderizarGrafico(data, sensorFiltro) {
+        const filtrado = sensorFiltro === 'Todos' ? data : data.filter(m => m.Sensor === sensorFiltro);
+
+        const ballesterData = filtrado.filter(m => m.Estacion.includes('Ballester'));
+        const gesellData    = filtrado.filter(m => m.Estacion.includes('Gesell'));
+
+        // Etiquetas unificadas por fecha+hora
+        const etiquetas = [...new Set(filtrado.map(m => `${m.Fecha} ${m.Hora.substring(0,5)}`))];
+
+        // Función para mapear valores a las etiquetas
+        const mapearValores = (subset) => etiquetas.map(etiq => {
+            const match = subset.find(m => `${m.Fecha} ${m.Hora.substring(0,5)}` === etiq);
+            return match ? parseFloat(match.Valor) : null;
         });
 
-        new Chart(document.getElementById('graficoMediciones'), {
+        if (chartInstance) chartInstance.destroy();
+
+        chartInstance = new Chart(document.getElementById('graficoMediciones'), {
             type: 'line',
             data: {
-                labels: data.map(m => m.Hora),
-                datasets: [{ label: 'Valor', data: data.map(m => m.Valor), borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.1)', fill: true, tension: 0.4 }]
+                labels: etiquetas,
+                datasets: [
+                    {
+                        label: 'Ballester',
+                        data: mapearValores(ballesterData),
+                        borderColor: '#38bdf8',
+                        backgroundColor: 'rgba(56,189,248,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        spanGaps: true
+                    },
+                    {
+                        label: 'Gesell',
+                        data: mapearValores(gesellData),
+                        borderColor: '#fbbf24',
+                        backgroundColor: 'rgba(251,191,36,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        spanGaps: true
+                    }
+                ]
             },
-            options: { responsive: true, maintainAspectRatio: false }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const unidad = filtrado.find(m => parseFloat(m.Valor) === ctx.raw);
+                                return ` ${ctx.dataset.label}: ${ctx.raw} ${unidad ? unidad.Unidad : ''}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#94a3b8', maxRotation: 45, font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
+            }
         });
-    });
+    }
 
-    // EXPORTACIÓN LIMPIA (SOLO GRÁFICO Y TABLA)
+    // ── FILTRO ────────────────────────────────────────────────────────────
+    function filtrarGrafico(sensor, btn) {
+        document.querySelectorAll('#filtros-sensor .btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderizarGrafico(todosLosDatos, sensor);
+    }
+
+    // ── EXPORT PDF ────────────────────────────────────────────────────────
     async function exportarPDFProfesional() {
         const { jsPDF } = window.jspdf;
         const btn = document.getElementById('btn-export');
-        const reporteA4 = document.getElementById('reporte-a4');
-        
         btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Generando PDF...';
 
         try {
-            document.getElementById('pdf-fecha').innerText = `Fecha: ${new Date().toLocaleString()}`;
-            
-            // Llenar tabla del PDF
-            const tablaOriginal = document.querySelectorAll('#tablaCuerpo tr');
+            document.getElementById('pdf-fecha').innerText = `Fecha: ${new Date().toLocaleString('es-AR')}`;
+
+            // Llenar tabla PDF
             const tablaPDF = document.getElementById('pdf-tabla-cuerpo');
-            tablaPDF.innerHTML = "";
-            tablaOriginal.forEach(tr => {
-                const c = tr.cells;
-                tablaPDF.innerHTML += `<tr><td>${c[0].innerText}</td><td>${c[1].innerText}</td><td style="font-weight:bold">${c[2].innerText}</td><td>${c[3].innerText} ${c[4].innerText}</td></tr>`;
+            tablaPDF.innerHTML = '';
+            todosLosDatos.forEach(m => {
+                tablaPDF.innerHTML += `<tr>
+                    <td>${m.Estacion}</td>
+                    <td>${m.Sensor}</td>
+                    <td style="font-weight:bold">${parseFloat(m.Valor).toLocaleString('es-AR')}</td>
+                    <td>${m.Unidad || '—'}</td>
+                    <td>${m.Fecha} ${m.Hora}</td>
+                </tr>`;
             });
 
-            // Captura de Gráfico en alta resolución (Scale 3)
+            // Captura gráfico
             const canvasChart = await html2canvas(document.getElementById('graficoMediciones'), { scale: 3 });
             document.getElementById('pdf-grafico-img').innerHTML = `<img src="${canvasChart.toDataURL('image/png', 1.0)}">`;
 
-            // Generar Documento
             setTimeout(async () => {
-                const canvasFinal = await html2canvas(reporteA4, { scale: 2 });
+                const canvasFinal = await html2canvas(document.getElementById('reporte-a4'), { scale: 2 });
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 pdf.addImage(canvasFinal.toDataURL('image/png', 1.0), 'PNG', 0, 0, 210, 297);
-                pdf.save(`Reporte_Tecnico_MRT_SA.pdf`);
+                pdf.save('Reporte_Tecnico_MRT_SA.pdf');
                 btn.innerHTML = '<i class="fa-solid fa-file-pdf me-2"></i>Exportar Reporte Técnico';
             }, 300);
 
